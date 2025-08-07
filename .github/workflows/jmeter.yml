@@ -18,7 +18,7 @@ jobs:
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/tests \
-            justb4/jmeter:5.6.3 \
+            justb4/jmeter:latest \
             -n -t /tests/get_all_urls.jmx \
             -Juser=$SOLR_USER -Jpasswd=$SOLR_PASSWD
 
