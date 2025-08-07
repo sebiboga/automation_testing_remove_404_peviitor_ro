@@ -1,10 +1,9 @@
-name: peviitor.ro
+name: Automation Testing with JMeter
 on:
-  push:
-    branches: [ main ]
+  workflow_dispatch:   # Allows manual triggering of the workflow
   schedule:
-    - cron: '30 18 * * *'
-  workflow_dispatch:
+    - cron: '0 */6 * * *'  # Runs every 6 hours at minute 0 (UTC)
+ 
 jobs:
   build:
     runs-on: ubuntu-latest
