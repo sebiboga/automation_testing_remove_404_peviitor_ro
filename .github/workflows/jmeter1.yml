@@ -29,41 +29,45 @@ jobs:
          echo "Installation complete. Run JMeter as your user with: jmeter"
          echo "Since you own /usr/share/jmeter, Plugins Manager can now install plugins properly."
       - name: install plugins
+         env:
+         JMETER_HOME: /usr/share/jmeter
         run: |
-         REQUIRED_PLUGINS=("jpgc-functions,jpgc-dummy")
-          wget -O $JMETER_HOME/lib/cmdrunner-2.2.jar https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar
-          java -cp $JMETER_HOME/lib/ext/plugins-manager.jar org.jmeterplugins.repository.PluginManagerCMDInstaller
+         REQUIRED_PLUGINS=("jpgc-functions" "jpgc-dummy")
 
-         function is_plugin_installed() {
+         # Download cmdrunner to JMETER_HOME/lib
+         wget -O $JMETER_HOME/lib/cmdrunner-2.2.jar https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar
+
+        # Run PluginManagerCMDInstaller to extract PluginsManagerCMD.sh
+        java -cp $JMETER_HOME/lib/ext/plugins-manager.jar org.jmeterplugins.repository.PluginManagerCMDInstaller
+
+        function is_plugin_installed() {
           local plugin_id="$1"
           if [ -z "$JMETER_HOME" ]; then
-                  echo "Error: JMETER_HOME is not set" >&2
+           echo "Error: JMETER_HOME is not set" >&2
           return 1
           fi
-    
-          # Verify PluginsManagerCMD.sh exists
-           if [ ! -f "$JMETER_HOME/bin/PluginsManagerCMD.sh" ]; then
+
+          if [ ! -f "$JMETER_HOME/bin/PluginsManagerCMD.sh" ]; then
             echo "Error: PluginsManagerCMD.sh not found in $JMETER_HOME/bin" >&2
             return 1
-           fi
-    
-           # Use status command to check for plugin
-           if "$JMETER_HOME/bin/PluginsManagerCMD.sh" status 2>/dev/null | grep -q "$plugin_id"; then
-              return 0
-           else
-             return 1
-           fi
-                                      }
-  
+          fi
 
-         for plugin in "${REQUIRED_PLUGINS[@]}"; do
-         if is_plugin_installed "$plugin"; then
-          echo "Plugin $plugin is already installed."
-         else
-          echo "Plugin $plugin not found. Installing..."
-          $JMETER_HOME/bin/PluginsManagerCMD.sh install "$plugin"
-         fi
-         done
+          if "$JMETER_HOME/bin/PluginsManagerCMD.sh" status 2>/dev/null | grep -q "$plugin_id"; then
+           return 0
+          else
+           return 1
+          fi
+                                    }
+
+          for plugin in "${REQUIRED_PLUGINS[@]}"; do
+           if is_plugin_installed "$plugin"; then
+             echo "Plugin $plugin is already installed."
+           else
+            echo "Plugin $plugin not found. Installing..."
+             $JMETER_HOME/bin/PluginsManagerCMD.sh install "$plugin"
+           fi
+           done
+
       - name: run local files
         run: |
          jmeter -n -t get_all_urls.jmx -Juser=$SOLR_USER -Jpasswd=$SOLR_PASSWD
