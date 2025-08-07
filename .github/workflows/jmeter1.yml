@@ -47,7 +47,7 @@ jobs:
           REQUIRED_PLUGINS=("jpgc-functions" "jpgc-dummy")
 
           # Download cmdrunner which is required by Plugins Manager CLI
-          wget -O $JMETER_HOME/lib/cmdrunner-2.2.jar https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar
+          wget -O $JMETER_HOME/lib/cmdrunner-2.3.jar https://repo1.maven.org/maven2/kg/apc/cmdrunner/2.3/cmdrunner-2.3.jar
 
           # Extract the PluginsManagerCMD.sh script from the jar
           java -cp $JMETER_HOME/lib/ext/plugins-manager.jar org.jmeterplugins.repository.PluginManagerCMDInstaller
