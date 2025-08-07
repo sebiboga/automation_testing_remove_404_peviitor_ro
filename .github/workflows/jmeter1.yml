@@ -87,7 +87,7 @@ jobs:
         run: |
           # Run tests with secrets and properties passed
           $JMETER_HOME/bin/jmeter -n -t get_all_urls.jmx -Juser=$SOLR_USER -Jpasswd=$SOLR_PASSWD
-          $JMETER_HOME/bin/jmeter -n -t gremove_404s.jmx
+          $JMETER_HOME/bin/jmeter -n -t remove_404s.jmx
 
           # Cleanup potentially generated files
           rm -f jmeter.log input.csv
