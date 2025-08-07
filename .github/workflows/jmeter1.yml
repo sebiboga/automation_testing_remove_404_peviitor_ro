@@ -30,7 +30,7 @@ jobs:
          echo "Since you own /usr/share/jmeter, Plugins Manager can now install plugins properly."
       - name: run local files
         run: |
-         jmeter -n -t get_all_urls.jmx Juser=$SOLR_USER -Jpasswd=$SOLR_PASSWD
+         jmeter -n -t get_all_urls.jmx -Juser=$SOLR_USER -Jpasswd=$SOLR_PASSWD
          jmeter -n -t gremove_404s.jmx 
          rm jmeter.log 
          rm input.csv
