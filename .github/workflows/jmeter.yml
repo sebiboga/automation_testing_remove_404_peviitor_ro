@@ -1,0 +1,30 @@
+name: Automation Testing with JMeter
+on:
+  workflow_dispatch:   # Allows manual triggering of the workflow
+  schedule:
+    - cron: '0 */6 * * *'  # Runs every 6 hours at minute 0 (UTC)
+
+jobs:
+  jmeter-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Run JMeter tests in Docker container
+        env:
+          SOLR_USER: ${{ secrets.solr_user }}
+          SOLR_PASSWD: ${{ secrets.solr_passwd }}
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/tests \
+            justb4/jmeter:5.6.3 \
+            -n -t /tests/get_all_urls.jmx \
+            -Juser=$SOLR_USER -Jpasswd=$SOLR_PASSWD
+
+          docker run --rm \
+            -v ${{ github.workspace }}:/tests \
+            justb4/jmeter:5.6.3 \
+            -n -t /tests/gremove_404s.jmx
+
+          rm -f jmeter.log input.csv
