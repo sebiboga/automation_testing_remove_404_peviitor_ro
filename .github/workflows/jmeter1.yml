@@ -1,76 +1,94 @@
 name: Automation Testing with JMeter
+
 on:
-  workflow_dispatch:   # Allows manual triggering of the workflow
+  workflow_dispatch:   # Allows manual triggering
   schedule:
     - cron: '0 */6 * * *'  # Runs every 6 hours at minute 0 (UTC)
- 
+
 jobs:
   build:
     runs-on: ubuntu-latest
     env:
       SOLR_USER: ${{ secrets.solr_user }}
       SOLR_PASSWD: ${{ secrets.solr_passwd }}
+      JMETER_HOME: /usr/share/jmeter
     steps:
-      - uses: actions/checkout@v3
-      - name: install JMeter
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install JMeter and dependencies
         run: |
-         sudo apt update
-         sudo apt install -y openjdk-11-jdk
-         java -version
-         sudo apt install -y jmeter
-         sudo apt install -y libcanberra-gtk3-module
-         sudo chown -R $USER:$USER /usr/share/jmeter
-         sudo chmod -R a+rX /usr/share/jmeter
-         wget https://dlcdn.apache.org/jmeter/binaries/apache-jmeter-5.6.3.tgz
-         tar --strip-components=1 -xvzf apache-jmeter-5.6.3.tgz -C /usr/share/jmeter
-         wget -O /usr/share/jmeter/lib/ext/plugins-manager.jar https://jmeter-plugins.org/get
-         chmod a+r /usr/share/jmeter/lib/ext/plugins-manager.jar
-         jmeter --version
-         echo "Installation complete. Run JMeter as your user with: jmeter"
-         echo "Since you own /usr/share/jmeter, Plugins Manager can now install plugins properly."
-      - name: install plugins
-         env:
-         JMETER_HOME: /usr/share/jmeter
+          sudo apt update
+          sudo apt install -y openjdk-11-jdk wget libcanberra-gtk3-module
+          java -version
+
+          # Install JMeter base packages (required to setup folders)
+          sudo apt install -y jmeter
+
+          # Fix permissions so current user can modify /usr/share/jmeter
+          sudo chown -R $USER:$USER $JMETER_HOME
+          sudo chmod -R a+rX $JMETER_HOME
+
+          # Download and extract Apache JMeter 5.6.3 binaries into /usr/share/jmeter
+          wget https://dlcdn.apache.org/jmeter/binaries/apache-jmeter-5.6.3.tgz -O apache-jmeter-5.6.3.tgz
+          tar --strip-components=1 -xvzf apache-jmeter-5.6.3.tgz -C $JMETER_HOME
+
+          # Download Plugins Manager jar into JMeter lib/ext directory
+          wget -O $JMETER_HOME/lib/ext/plugins-manager.jar https://jmeter-plugins.org/get
+          chmod a+r $JMETER_HOME/lib/ext/plugins-manager.jar
+
+          # Verify JMeter installation
+          $JMETER_HOME/bin/jmeter --version
+
+          echo "Installation complete. Plugins Manager ready."
+
+      - name: Install required plugins
         run: |
-         REQUIRED_PLUGINS=("jpgc-functions" "jpgc-dummy")
+          REQUIRED_PLUGINS=("jpgc-functions" "jpgc-dummy")
 
-         # Download cmdrunner to JMETER_HOME/lib
-         wget -O $JMETER_HOME/lib/cmdrunner-2.2.jar https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar
+          # Download cmdrunner which is required by Plugins Manager CLI
+          wget -O $JMETER_HOME/lib/cmdrunner-2.2.jar https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar
 
-        # Run PluginManagerCMDInstaller to extract PluginsManagerCMD.sh
-        java -cp $JMETER_HOME/lib/ext/plugins-manager.jar org.jmeterplugins.repository.PluginManagerCMDInstaller
+          # Extract the PluginsManagerCMD.sh script from the jar
+          java -cp $JMETER_HOME/lib/ext/plugins-manager.jar org.jmeterplugins.repository.PluginManagerCMDInstaller
 
-        function is_plugin_installed() {
-          local plugin_id="$1"
-          if [ -z "$JMETER_HOME" ]; then
-           echo "Error: JMETER_HOME is not set" >&2
-          return 1
-          fi
+          # Define a helper function to check if plugin is installed
+          function is_plugin_installed() {
+            local plugin_id="$1"
 
-          if [ ! -f "$JMETER_HOME/bin/PluginsManagerCMD.sh" ]; then
-            echo "Error: PluginsManagerCMD.sh not found in $JMETER_HOME/bin" >&2
-            return 1
-          fi
+            if [ -z "$JMETER_HOME" ]; then
+              echo "Error: JMETER_HOME is not set" >&2
+              return 1
+            fi
 
-          if "$JMETER_HOME/bin/PluginsManagerCMD.sh" status 2>/dev/null | grep -q "$plugin_id"; then
-           return 0
-          else
-           return 1
-          fi
-                                    }
+            if [ ! -f "$JMETER_HOME/bin/PluginsManagerCMD.sh" ]; then
+              echo "Error: PluginsManagerCMD.sh not found in $JMETER_HOME/bin" >&2
+              return 1
+            fi
 
+            if "$JMETER_HOME/bin/PluginsManagerCMD.sh" status 2>/dev/null | grep -q "$plugin_id"; then
+              return 0
+            else
+              return 1
+            fi
+          }
+
+          # Install plugins if missing
           for plugin in "${REQUIRED_PLUGINS[@]}"; do
-           if is_plugin_installed "$plugin"; then
-             echo "Plugin $plugin is already installed."
-           else
-            echo "Plugin $plugin not found. Installing..."
-             $JMETER_HOME/bin/PluginsManagerCMD.sh install "$plugin"
-           fi
-           done
+            if is_plugin_installed "$plugin"; then
+              echo "Plugin $plugin is already installed."
+            else
+              echo "Plugin $plugin not found. Installing..."
+              $JMETER_HOME/bin/PluginsManagerCMD.sh install "$plugin"
+            fi
+          done
 
-      - name: run local files
+      - name: Run JMeter tests
         run: |
-         jmeter -n -t get_all_urls.jmx -Juser=$SOLR_USER -Jpasswd=$SOLR_PASSWD
-         jmeter -n -t gremove_404s.jmx 
-         rm jmeter.log 
-         rm input.csv
+          # Run tests with secrets and properties passed
+          $JMETER_HOME/bin/jmeter -n -t get_all_urls.jmx -Juser=$SOLR_USER -Jpasswd=$SOLR_PASSWD
+          $JMETER_HOME/bin/jmeter -n -t gremove_404s.jmx
+
+          # Cleanup potentially generated files
+          rm -f jmeter.log input.csv
+
