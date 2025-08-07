@@ -12,8 +12,22 @@ jobs:
       SOLR_PASSWD: ${{ secrets.solr_passwd }}
     steps:
       - uses: actions/checkout@v3
-      - name: run jmeter on github action
-        uses: sebiboga/run-jmeter-github-action@main
+      - name: install JMeter
+        run: |
+         sudo apt update
+         sudo apt install -y openjdk-11-jdk
+         java -version
+         sudo apt install -y jmeter
+         sudo apt install -y libcanberra-gtk3-module
+         sudo chown -R $USER:$USER /usr/share/jmeter
+         sudo chmod -R a+rX /usr/share/jmeter
+         wget https://dlcdn.apache.org/jmeter/binaries/apache-jmeter-5.6.3.tgz
+         tar --strip-components=1 -xvzf apache-jmeter-5.6.3.tgz -C /usr/share/jmeter
+         wget -O /usr/share/jmeter/lib/ext/plugins-manager.jar https://jmeter-plugins.org/get
+         chmod a+r /usr/share/jmeter/lib/ext/plugins-manager.jar
+         jmeter --version
+         echo "Installation complete. Run JMeter as your user with: jmeter"
+         echo "Since you own /usr/share/jmeter, Plugins Manager can now install plugins properly."
       - name: run local files
         run: |
          jmeter -n -t get_all_urls.jmx Juser=$SOLR_USER -Jpasswd=$SOLR_PASSWD
