@@ -5,5 +5,7 @@ we need to automatically remove all documents from PRODUCTION Apache SOLR with j
 jmeter -n -t get_all_urls.jmx -Duser=your_username -Dpasswd=your_password
 
 jmeter -n -t gremove_404s.jmx
+
 rm jmeter.log
+
 remove input.csv
