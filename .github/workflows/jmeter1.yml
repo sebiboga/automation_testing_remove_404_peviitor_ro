@@ -7,7 +7,16 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      SOLR_USER: ${{ secrets.solr_user }}
+      SOLR_PASSWD: ${{ secrets.solr_passwd }}
     steps:
       - uses: actions/checkout@v3
       - name: run jmeter on github action
         uses: sebiboga/run-jmeter-github-action@main
+      - name: run local files
+        run: |
+         jmeter -n -t get_all_urls.jmx Juser=$SOLR_USER -Jpasswd=$SOLR_PASSWD
+         jmeter -n -t gremove_404s.jmx 
+         rm jmeter.log 
+         rm input.csv
